@@ -1,0 +1,56 @@
+**Best Practices**
+-- Override equals() and hashCode()
+By properly overriding equals() and hashCode() methods, the application obtains the
+same results across all entity state transitions (this aspect is dissected in Item 68). For
+@OneToMany associations, these methods should be overridden on the child-side. In
+this case, we use the auto-generated database identifier to override these two methods.
+Overriding equals() and hashCode() based on auto-generated database identifier is a
+special case that is detailed in Item 68. The most important aspect to keep in mind is
+that, for auto-generated database identifiers, the equals() method should perform a
+null check of the identifier before performing the equality check, and the hashCode()
+method should return a constant value. Since the Book entity is on the child-side, we
+highlight these two aspects as follows:
+@Override
+public boolean equals(Object obj) {
+ ...
+ return id != null && id.equals(((Book) obj).id);
+}
+@Override
+public int hashCode() {
+ return 2021;
+}
+
+-- Use Lazy Fetching on Both Sides of the Association
+
+By default, fetching a parent-side entity will not fetch the children entities. This means
+that @OneToMany is set to lazy. On the other hand, fetching a child entity will eagerly fetch
+its parent-side entity by default. It is advisable to explicitly set @ManyToOne to lazy and
+rely on eager fetching only on a query-basis. Further details are available in Chapter 3.
+In this case, the Book entity explicitly maps the @ManyToOne as LAZY:
+@ManyToOne(fetch = FetchType.LAZY)
+
+-- Use @JoinColumn to Specify the Join Column Name
+
+-- We Should Avoid the Unidirectional @OneToMany Association :
+The missing @ManyToOne association leads to a separate junction table (author_books)
+meant to manage the parent-child association, as shown in Figure 1-2.
+
+
+-- Unidirectional @OneToMany :
+* 3 insertion in the junction table ( for n books , there are n additional inserts
+* In order to insert a new book , the jpa persistance provider ( Hibernate ) deletes
+  all associated books from the junction table. Next , it adds the new book in-memory and pesist
+  the result back again. ( ! far from being efficient)
+* In order to delete the last book , Hibernate deletes all associated books from the junction table,
+  remove in-memory the last book, and persiste the remaining books back again
+* Deleting the first book acts exactly as deleting the last book
+* Adding @JoinColumn instructs Hibernate that the @OneToMany association is capable of controlling the
+  child-table foreign key.
+* When using the @JoinColumn : for each inserted book, Hibernate triggers an UPDATE to set the author_id
+  value.Obviously, this adds a performance penalty in comparison to the bidirectional @OneToMany.
+* When deleting in this case , Hibernate dissociates the books from its author by setting author_id to null,
+  next the dissociated book is deleted, thanks to orphanRemoval = true.
+* Conclusion : it looks like unidirectional @ManyToOne association is quite efficient and it can be used whenever
+  a bidirectional @OneToMany association is not needed.
+  TRY TO AVOID THE UNIDIRECTIONAL @OneToMany ASSOCATION
+
