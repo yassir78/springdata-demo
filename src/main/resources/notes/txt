@@ -54,3 +54,15 @@ meant to manage the parent-child association, as shown in Figure 1-2.
   a bidirectional @OneToMany association is not needed.
   TRY TO AVOID THE UNIDIRECTIONAL @OneToMany ASSOCATION
 
+Item 5: Why Set Is Better than List in @ManyToMany
+
+*When using the @ManyToMany annotation, always use Sets and Do not use the Lists. In the case of other
+associations, use the one that best fits your case. If you go with List, do not forget to be aware of
+the HHH-5855 issue that was fixed starting with hibernate 5.0.8
+
+* Using @OrderBy with hashSet will preserve the order of the loaded/fetched Set, but this is not consistent
+across the transient state. If this is an issue, to get consistency across the transient state as well,consider
+explicitly using LinkedHashSet instead of HashSet. So for full consistency, use:
+@ManyToMany(mappedBy = "books")
+@OrderBy("name DESC")
+private Set<Author> authors = new LinkedHashSet<>();
